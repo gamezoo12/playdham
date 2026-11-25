@@ -149,7 +149,7 @@ export default function WinningsWallet() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
           <div>
             <h3 className="font-extrabold text-lg text-slate-900">Challenge spending</h3>
-            <p className="mt-1 text-sm text-slate-500">Token entry costs for your challenge attempts</p>
+            <p className="mt-1 text-sm text-slate-500">All challenge attempts are free</p>
           </div>
           {!attemptsLoading && !attemptsError && (
             <span className="text-xs font-bold text-slate-500">{challengeAttempts.length} attempts</span>
@@ -160,7 +160,7 @@ export default function WinningsWallet() {
         ) : attemptsError ? (
           <p className="px-5 py-4 text-sm text-rose-700" role="alert">{attemptsError}</p>
         ) : challengeAttempts.length === 0 ? (
-          <p className="px-5 py-4 text-sm text-slate-500">No challenge attempts or entry costs yet.</p>
+          <p className="px-5 py-4 text-sm text-slate-500">No challenge attempts yet.</p>
         ) : (
           <div className="divide-y divide-slate-100">
             {challengeAttempts.map((attempt) => {

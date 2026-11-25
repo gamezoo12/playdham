@@ -6,7 +6,7 @@ const newGame = (type, games) => {
   const size = type === 'colour_match' ? 4 : 20;
   const id = `${type === 'colour_match' ? 'colour-match' : 'number-sequence'}-${Date.now()}`;
   return { game_id: id, type, size, name: type === 'colour_match' ? 'New Colour Match' : 'New Number Sequence',
-    time_limit_seconds: 10, entry_tokens: 1, prize_paise: 50000, prize_inr: '500.00', max_attempts: 0, target_matches: 10, enabled: false };
+    time_limit_seconds: 10, entry_tokens: 0, prize_paise: 50000, prize_inr: '500.00', max_attempts: 0, target_matches: 10, enabled: false };
 };
 const fields = [
   ['name', 'Game name', 'text'], ['size', 'Numbers / colours', 'number'],
@@ -20,7 +20,7 @@ const normalizeGame = game => ({ ...game, prize_inr: (Number(game.prize_paise ||
 const gamePayload = game => {
   const { prize_inr, ...payload } = game;
   return { ...payload, size: Number(game.size), time_limit_seconds: Number(game.time_limit_seconds),
-    entry_tokens: Number(game.entry_tokens), prize_paise: Math.round(Number(prize_inr ?? Number(game.prize_paise || 0) / 100) * 100),
+    entry_tokens: 0, prize_paise: Math.round(Number(prize_inr ?? Number(game.prize_paise || 0) / 100) * 100),
     max_attempts: Number(game.max_attempts), target_matches: Number(game.target_matches) };
 };
 
@@ -91,7 +91,7 @@ export default function SpecialChallengeAdmin() {
     finally { setSaving(''); }
   };
   const launchAll = async () => {
-    if (!window.confirm('Publish every configured challenge with hard time limits? Each attempt costs 1 token; winning a game starts a 24-hour cooldown for that game.')) return;
+    if (!window.confirm('Publish every configured challenge with hard time limits? All attempts are free; winning a game starts a 24-hour cooldown for that game.')) return;
     setLaunching(true); setNotice('');
     try {
       const { data } = await api.post('/admin/winnings/challenge/games/launch-all');
@@ -102,8 +102,8 @@ export default function SpecialChallengeAdmin() {
     finally { setLaunching(false); }
   };
   return <div className="mx-auto max-w-6xl p-5 text-slate-900">
-    <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-black">Special Challenge Games</h1><p className="text-sm text-slate-500">Configure entry, prize, difficulty, and availability independently.</p></div><div className="flex flex-wrap gap-2"><button onClick={launchAll} disabled={launching || busy} className="flex items-center gap-2 rounded-lg bg-emerald-700 px-3 py-2 font-bold text-white disabled:opacity-50"><Rocket size={16} /> {launching ? 'Publishing…' : 'Publish all games'}</button><button onClick={load} className="flex items-center gap-2 rounded-lg border px-3 py-2"><RefreshCw size={16} /> Refresh</button></div></div>
-    <p className="mb-5 text-sm font-semibold text-slate-600">Each attempt costs 1 token. A player can win each game once per rolling 24 hours.</p>
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-black">Special Challenge Games</h1><p className="text-sm text-slate-500">Configure prizes, difficulty, and availability independently.</p></div><div className="flex flex-wrap gap-2"><button onClick={launchAll} disabled={launching || busy} className="flex items-center gap-2 rounded-lg bg-emerald-700 px-3 py-2 font-bold text-white disabled:opacity-50"><Rocket size={16} /> {launching ? 'Publishing…' : 'Publish all games'}</button><button onClick={load} className="flex items-center gap-2 rounded-lg border px-3 py-2"><RefreshCw size={16} /> Refresh</button></div></div>
+    <p className="mb-5 text-sm font-semibold text-slate-600">Every attempt is free. A player can win each game once per rolling 24 hours.</p>
     <div className="mb-5 flex flex-wrap gap-2">{['number_sequence', 'colour_match'].map(type => <button key={type} onClick={() => setGames(items => [...items, newGame(type, items)])} className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white"><Plus size={16} /> Add {type === 'colour_match' ? 'Colour Match' : 'Number Sequence'}</button>)}</div>
     {notice && <p role="status" className="mb-4 rounded-lg bg-amber-50 p-3 text-sm">{notice}</p>}
     {busy && <p>Loading…</p>}

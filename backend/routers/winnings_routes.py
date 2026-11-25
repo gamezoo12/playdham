@@ -182,7 +182,7 @@ async def _audit(db, action, actor_id, target, meta=None):
 
 
 # ------------------------- Configurable Special Challenges -------------------------
-# Each attempt snapshots settings so later admin edits cannot change a paid game.
+# Each attempt snapshots settings so later admin edits cannot change an active game.
 DEFAULT_TIMES = {20: 8, 25: 10, 30: 12, 36: 14, 42: 16, 49: 18, 64: 23, 81: 30, 100: 40}
 DEFAULT_COLOUR_TIMES = {4: 8, 5: 9, 6: 10, 7: 11, 8: 12, 9: 13, 10: 14}
 PALETTE = [
@@ -200,12 +200,12 @@ def _default_games():
     for count, seconds in DEFAULT_TIMES.items():
         rows.append({"game_id": CHALLENGE_ID if count == 100 else f"number-sequence-{count}",
                      "type": "number_sequence", "size": count, "name": f"{count} Number Sequence",
-                     "time_limit_seconds": seconds, "entry_tokens": 1, "prize_paise": 50000,
+                     "time_limit_seconds": seconds, "entry_tokens": 0, "prize_paise": 50000,
                      "max_attempts": 0, "target_matches": 0, "enabled": True})
     for count, seconds in DEFAULT_COLOUR_TIMES.items():
         rows.append({"game_id": f"colour-match-{count}", "type": "colour_match", "size": count,
                      "name": f"{count} Colour Match", "time_limit_seconds": seconds,
-                     "entry_tokens": 1, "prize_paise": 50000, "max_attempts": 0,
+                     "entry_tokens": 0, "prize_paise": 50000, "max_attempts": 0,
                      "target_matches": 10, "enabled": True})
     return rows
 
@@ -219,7 +219,7 @@ async def _seed_challenges(db):
 def _public_game(g):
     game = {k: g[k] for k in ("game_id", "type", "size", "name", "time_limit_seconds",
                               "entry_tokens", "prize_paise", "max_attempts", "target_matches", "enabled")}
-    game["entry_tokens"] = 1
+    game["entry_tokens"] = 0
     return game
 
 
@@ -381,11 +381,7 @@ async def start_challenge(request: Request, body: StartChallengeBody = None):
         if used >= limit:
             raise HTTPException(403, "Attempt limit reached")
     attempt_id = uuid.uuid4().hex
-    cost = 1
-    if cost:
-        await _apply_tx_idempotent(db, user_id, "spend", -float(cost),
-                                   note=f"Special Challenge entry - {game['name']}",
-                                   ref_order_id=f"impossible_challenge_entry:{attempt_id}")
+    cost = 0
     q = _question(game["size"]) if game["type"] == "colour_match" else None
     attempt = {"attempt_id": attempt_id, "challenge_id": game_id, "user_id": user_id,
                "type": game["type"], "size": game["size"], "target_matches": game["target_matches"],
@@ -487,7 +483,7 @@ class ChallengeGameBody(BaseModel):
     size: int
     name: str
     time_limit_seconds: int
-    entry_tokens: int
+    entry_tokens: int = 0
     prize_paise: int
     max_attempts: int = 0
     target_matches: int = 10
@@ -671,7 +667,7 @@ async def launch_all_challenge_games(request: Request):
     for game in rows:
         await db.special_challenge_games.update_one(
             {"game_id": game["game_id"]},
-            {"$set": {"enabled": True, "entry_tokens": 1}},
+            {"$set": {"enabled": True, "entry_tokens": 0}},
         )
     return {"launched_count": len(rows)}
 
@@ -701,8 +697,6 @@ async def save_challenge_game(game_id: str, body: ChallengeGameBody, request: Re
         raise HTTPException(400, "Invalid game size")
     if not (1 <= body.time_limit_seconds <= 3600):
         raise HTTPException(400, "Invalid timer")
-    if body.entry_tokens != 1:
-        raise HTTPException(400, "Each challenge attempt costs exactly 1 token")
     if not (0 <= body.prize_paise <= 100000000) or not (0 <= body.max_attempts <= 100000):
         raise HTTPException(400, "Invalid prize or attempt limit")
     if body.type == "colour_match" and not (1 <= body.target_matches <= 500):
@@ -715,7 +709,7 @@ async def save_challenge_game(game_id: str, body: ChallengeGameBody, request: Re
     if existing and (existing["type"] != body.type or existing["size"] != body.size):
         raise HTTPException(400, "Cannot change the type or size of an existing game")
     row = body.model_dump() if hasattr(body, "model_dump") else body.dict()
-    row["entry_tokens"] = 1
+    row["entry_tokens"] = 0
     if body.type == "number_sequence":
         row["target_matches"] = 0
     await db.special_challenge_games.update_one({"game_id": game_id}, {"$set": row}, upsert=True)
