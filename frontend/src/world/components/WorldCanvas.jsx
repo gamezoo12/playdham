@@ -340,30 +340,26 @@ function championLevelName(championshipNumber) {
 
 /*
  * UI DISPLAY progression:
- * Champion 1 = £100
- * Champion 2 = £150
- * Champion 3 = £200
+ * Champion 1 = ₹500
+ * Champion 2 = ₹600
+ * Champion 3 = ₹700
  * ...
- * Champion 100 = £5,050
+ * Champion 100 = ₹10,400
  *
  * This does NOT modify wallet/settlement logic.
  */
 function championDisplayPrize(championshipNumber) {
   return (
-    50 *
-    (
-      Number(championshipNumber) +
-      1
-    )
+    400 + 100 * Number(championshipNumber)
   );
 }
 
 function formatChampionPrize(championshipNumber) {
   return new Intl.NumberFormat(
-    'en-GB',
+    'en-IN',
     {
       style: 'currency',
-      currency: 'GBP',
+      currency: 'INR',
       maximumFractionDigits: 0,
     },
   ).format(
