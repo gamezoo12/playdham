@@ -80,11 +80,11 @@ def _run(db, cat, subject, msg, **kw):
 
 
 def test_verified_withdrawal_status_is_stated_from_records_only():
-    db = _FakeDB(withdrawal_requests=[{'status': 'processing', 'amount_pence': 3000}])
+    db = _FakeDB(withdrawal_requests=[{'status': 'processing', 'amount_paise': 3000}])
     out = _run(db, 'wallet', 'Withdrawal pending', 'My withdrawal is still pending')
     assert out['has_verified_data'] and out['verified_data_used'] == ['Withdrawal requests']
     for s in out['suggestions']:
-        assert 'From our records' in s['text'] and '£30.00' in s['text'] and 'awaiting review' in s['text']
+        assert 'From our records' in s['text'] and '₹30.00' in s['text'] and 'awaiting review' in s['text']
         assert s['basis'] == 'verified_data' and s['word_count'] >= 50
 
 
@@ -114,7 +114,7 @@ def test_ai_output_gets_code_injected_facts_and_signature_once():
         'winnings page and check the bank details you submitted, then let us know what you see so we can guide you on '
         'the next step. Thank you for your patience.\\n\\nPrize League Customer Support"}' % (t, t)
         for t in ('friendly', 'professional', 'detailed')) + ']}')
-    facts = ['your withdrawal of £30.00 is marked as processing (awaiting review)']
+    facts = ['your withdrawal of ₹30.00 is marked as processing (awaiting review)']
     got = ss.parse_ai_suggestions(raw, 'Sam', facts)
     assert set(got) == {'friendly', 'professional', 'detailed'}
     for t in got.values():
@@ -138,7 +138,7 @@ def test_ai_output_stating_account_status_or_actions_is_rejected():
     filler = ' please refresh the page and tell us the contest name and the date it ended so we can guide you. ' * 3
     assert one('Hello Sam, your balance is 5 tokens.' + filler) == {}
     assert one('Hello Sam, we have reviewed your account.' + filler) == {}
-    assert one('Hello Sam, your withdrawal of £99.00 is on its way.' + filler) == {}
+    assert one('Hello Sam, your withdrawal of ₹99.00 is on its way.' + filler) == {}
     assert one('Hello Sam, this was caused by your internet connection.' + filler) == {}
     assert one('Hello Sam, thanks for getting in touch.' + filler + ' Thanks for your patience.') != {}
 

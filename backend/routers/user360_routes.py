@@ -592,9 +592,9 @@ async def user_360(user_id: str, request: Request):
         'bonus_tokens': round(bonus_tokens, 2) if source_classified else None,
         'available_to_cash_out': round(winning_tokens, 2) if source_classified else None,
         'pending_withdrawable_tokens': round(pending_withdrawable, 2),
-        'winnings_pence': int(winnings_wallet.get('available_pence') or 0)
-                          + int(winnings_wallet.get('pending_pence') or 0),
-        'lifetime_winnings_pence': int(winnings_wallet.get('total_won_pence') or 0),
+        'winnings_paise': int(winnings_wallet.get('available_paise') or 0)
+                          + int(winnings_wallet.get('pending_paise') or 0),
+        'lifetime_winnings_paise': int(winnings_wallet.get('total_won_paise') or 0),
         **bonus_view,
     }
     for grant in bonus_grants:
@@ -892,7 +892,7 @@ async def user_360(user_id: str, request: Request):
                 'attempts_count': len(challenge_attempts),
                 'rewards_count': len(challenge_rewards),
                 'cooldowns_count': len(challenge_cooldowns),
-                'total_rewards_pence': sum(int(r.get('reward_pence') or 0) for r in challenge_rewards),
+                'total_rewards_paise': sum(int(r.get('reward_paise') or 0) for r in challenge_rewards),
                 'total_tokens_spent': sum(int(r.get('entry_tokens') or 0) for r in challenge_attempts),
             },
         },
@@ -1523,7 +1523,7 @@ class AdminAlertCreateRequest(BaseModel):
 
 
 def _sms_segments(message: str) -> dict:
-    basic = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà"
+    basic = "@₹$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà"
     extended = '^{}\\[~]|€\f'
     gsm = all(char in basic or char in extended for char in message)
     units = [2 if char in extended else 1 for char in message] if gsm else [len(char.encode('utf-16-be')) // 2 for char in message]
@@ -2165,7 +2165,7 @@ async def refresh_alert_costs(campaign_id: str, request: Request):
 
 
 class AlertCostRates(BaseModel):
-    currency: Literal['GBP', 'USD', 'EUR'] = 'GBP'
+    currency: Literal['INR', 'USD', 'EUR'] = 'INR'
     sms_per_segment: Optional[float] = Field(default=None, ge=0, le=100, allow_inf_nan=False)
     email_per_message: Optional[float] = Field(default=None, ge=0, le=100, allow_inf_nan=False)
 

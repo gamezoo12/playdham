@@ -165,10 +165,10 @@ def test_wallet_report_reconciles_types_and_gbp_without_mutating(db_name):
                     'expires_at': now + timedelta(hours=12), 'status': 'active', 'expired_amount': 0, 'revoked_amount': 0})
                 await db.cashout_requests.insert_one({'withdrawal_id': uuid.uuid4().hex, 'user_id': user_id,
                     'amount_tokens': 10, 'amount_inr': 10, 'status': 'processing', 'created_at': now})
-                await db.winnings_wallets.insert_one({'user_id': user_id, 'total_won_pence': 5000,
-                    'available_pence': 2500, 'pending_pence': 500, 'total_paid_pence': 2000})
+                await db.winnings_wallets.insert_one({'user_id': user_id, 'total_won_paise': 5000,
+                    'available_paise': 2500, 'pending_paise': 500, 'total_paid_paise': 2000})
                 await db.withdrawal_requests.insert_one({'withdrawal_id': uuid.uuid4().hex, 'user_id': user_id,
-                    'amount_pence': 700, 'status': 'processing', 'created_at': now})
+                    'amount_paise': 700, 'status': 'processing', 'created_at': now})
             return run()
         db_insert(db_name, fill)
         r = requests.get(f'{API}/admin/dashboard/wallet-report', params={'refresh': 'true'}, headers=headers, timeout=30)
@@ -187,8 +187,8 @@ def test_wallet_report_reconciles_types_and_gbp_without_mutating(db_name):
         assert report['winning_bonus_tokens']['held'] - before['winning_bonus_tokens']['held'] == 5
         assert report['winnings']['championship_prize_tokens']['held_withdrawable'] - before['winnings']['championship_prize_tokens']['held_withdrawable'] == 15
         assert report['winnings']['championship_prize_tokens']['pending_requests_tokens'] - before['winnings']['championship_prize_tokens']['pending_requests_tokens'] == 10
-        assert report['winnings']['challenge_winnings_gbp']['held'] - before['winnings']['challenge_winnings_gbp']['held'] == 25
-        assert report['winnings']['challenge_winnings_gbp']['pending_withdrawals'] - before['winnings']['challenge_winnings_gbp']['pending_withdrawals'] == 7
+        assert report['winnings']['challenge_winnings_inr']['held'] - before['winnings']['challenge_winnings_inr']['held'] == 25
+        assert report['winnings']['challenge_winnings_inr']['pending_withdrawals'] - before['winnings']['challenge_winnings_inr']['pending_withdrawals'] == 7
         assert report['integrity']['wallet_balance_total_tokens'] - before['integrity']['wallet_balance_total_tokens'] == 51
         assert report['integrity']['components_total_tokens'] - before['integrity']['components_total_tokens'] == 51
         # Reporting is read-only.
@@ -399,7 +399,7 @@ def test_world_activity_reports_three_worlds_and_source_labeled_spend(db_name):
                     })
                 await db.special_challenge_rewards.insert_one({
                     'reward_id': uuid.uuid4().hex, 'attempt_id': attempt, 'user_id': user_id,
-                    'reward_pence': 500, 'reward_status': 'credited', 'created_at': now,
+                    'reward_paise': 500, 'reward_status': 'credited', 'created_at': now,
                     'credited_at': now,
                 })
             return run()
@@ -414,7 +414,7 @@ def test_world_activity_reports_three_worlds_and_source_labeled_spend(db_name):
         assert worlds['paid_world']['entries'] >= 1 and worlds['paid_world']['completed_plays'] >= 1
         assert worlds['paid_world']['token_spend_by_category']['winning_bonus_tokens'] >= 4
         assert worlds['impossible_challenges']['game_starts'] >= 1
-        assert worlds['impossible_challenges']['winnings']['cash_pence'] >= 500
+        assert worlds['impossible_challenges']['winnings']['cash_paise'] >= 500
     finally:
         cleanup(db_name, admin_id)
         cleanup(db_name, user_id)

@@ -149,7 +149,7 @@ class TestIntlRestrictions:
         ('/payments/wallet-topup/checkout', {'lookup_key': 'wallet_topup_10', 'origin_url': BASE_URL}),
         ('/wallet/topup', {'amount': 10}),
         ('/cashout/request', {'amount_tokens': 10, 'bank_account_id': 'x'}),
-        ('/winnings/withdraw', {'amount_pence': 1000, 'account_holder': 'T', 'sort_code': '112233', 'account_number': '12345678'}),
+        ('/winnings/withdraw', {'amount_paise': 1000, 'account_holder': 'T', 'ifsc': 'HDFC0001234', 'account_number': '12345678'}),
         ('/promotion/join', None),
         ('/world/champion/session/start', {}),
     ])

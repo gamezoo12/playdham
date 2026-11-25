@@ -34,7 +34,7 @@ GATED = [
     ('post', '/promotion/join', None),
     ('post', '/promotion/campaigns/any-campaign/claim', None),
     ('post', '/cashout/request', {'amount_tokens': 1, 'bank_account_id': 'test'}),
-    ('post', '/winnings/withdraw', {'amount_pence': 1, 'account_holder': 'Test', 'sort_code': '000000', 'account_number': '00000000'}),
+    ('post', '/winnings/withdraw', {'amount_paise': 1, 'account_holder': 'Test', 'ifsc': '000000', 'account_number': '00000000'}),
 ]
 
 

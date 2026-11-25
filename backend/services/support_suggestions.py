@@ -162,8 +162,8 @@ def _first_name(name):
     return first[:30] or 'there'
 
 
-def _pounds(pence):
-    return f'£{int(pence) / 100:.2f}'
+def _pounds(paise):
+    return f'₹{int(paise) / 100:.2f}'
 
 
 def _date(value):
@@ -186,14 +186,14 @@ async def gather_facts(db, case, issue, text=''):
     try:
         if issue == 'withdrawal':
             rows = await db.withdrawal_requests.find(
-                {'user_id': uid}, {'_id': 0, 'status': 1, 'amount_pence': 1, 'created_at': 1, 'processed_at': 1},
+                {'user_id': uid}, {'_id': 0, 'status': 1, 'amount_paise': 1, 'created_at': 1, 'processed_at': 1},
             ).sort('created_at', -1).limit(3).to_list(3)
             for row in rows:
                 when = _date(row.get('created_at'))
                 done = _date(row.get('processed_at'))
                 status = row.get('status')
                 facts.append(
-                    f"your withdrawal of {_pounds(row.get('amount_pence') or 0)}"
+                    f"your withdrawal of {_pounds(row.get('amount_paise') or 0)}"
                     f"{' requested on ' + when if when else ''} "
                     f"{_WITHDRAWAL_WORDING.get(status, 'has the status ' + str(status))}"
                     f"{' on ' + done if done and status in ('paid', 'rejected') else ''}"
@@ -249,7 +249,7 @@ async def gather_facts(db, case, issue, text=''):
             for w in rows:
                 when = _date(w.get('drawn_at'))
                 facts.append(
-                    f"a prize result ({w.get('prize_title') or 'prize'}, £{float(w.get('prize_amount') or 0):.2f}"
+                    f"a prize result ({w.get('prize_title') or 'prize'}, ₹{float(w.get('prize_amount') or 0):.2f}"
                     f"{', drawn on ' + when if when else ''}) is recorded and "
                     f"{'is marked as paid out' if w.get('paid_out') else 'is not yet marked as paid out'}"
                 )
@@ -425,8 +425,8 @@ def parse_ai_suggestions(raw, first_name, facts=(), already_tried=(), required_a
             continue
         if not _has_friendly_closing(body):
             continue
-        known_amounts = set(re.findall(r'£\d+(?:\.\d+)?', ' '.join(facts)))
-        if set(re.findall(r'£\d+(?:\.\d+)?', body)) - known_amounts:
+        known_amounts = set(re.findall(r'₹\d+(?:\.\d+)?', ' '.join(facts)))
+        if set(re.findall(r'₹\d+(?:\.\d+)?', body)) - known_amounts:
             continue
         body = _inject_basis(body, facts)
         if _wc(body) < MIN_WORDS or _UNSAFE_CLAIMS.search(body) or not re.match(r'(?i)\s*(hi|hello|dear|hey|good)', body):

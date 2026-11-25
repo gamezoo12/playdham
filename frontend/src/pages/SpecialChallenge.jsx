@@ -51,7 +51,7 @@ const shuffle = (values) => {
   }
   return a;
 };
-const money = (pence) => `£${(Number(pence || 0) / 100).toFixed(2)}`;
+const money = (paise) => `₹${(Number(paise || 0) / 100).toFixed(2)}`;
 const messageOf = (e) => e?.response?.data?.detail || e?.message || 'Something went wrong. Please try again.';
 export default function SpecialChallenge() {
   const navigate = useNavigate();
@@ -133,8 +133,8 @@ export default function SpecialChallenge() {
       const { data } = await api.post('/winnings/challenge/complete', { attempt_id: id, sequence: seq, telemetry: gameplayTelemetrySnapshot() });
       stopGameplayTelemetry();
       finishResult(data);
-      if (data.reward_pence > 0) toast({ title: `You won ${money(data.reward_pence)}!`, description: 'Credited to your withdrawable wallet.' });
-    } catch (e) { setError(messageOf(e)); finishResult({ result: 'fail', reward_pence: 0 }); }
+      if (data.reward_paise > 0) toast({ title: `You won ${money(data.reward_paise)}!`, description: 'Credited to your withdrawable wallet.' });
+    } catch (e) { setError(messageOf(e)); finishResult({ result: 'fail', reward_paise: 0 }); }
   };
 
   useEffect(() => {
@@ -144,7 +144,7 @@ export default function SpecialChallenge() {
       setLeftMs(remaining);
       if (remaining === 0 && !completedRef.current) {
         if (attempt.type === 'number_sequence') complete(attempt.attempt_id, sequenceRef.current);
-        else { completedRef.current = true; finishResult({ result: 'fail', reward_pence: 0, timeout: true }); }
+        else { completedRef.current = true; finishResult({ result: 'fail', reward_paise: 0, timeout: true }); }
       }
     }, 50);
     return () => clearInterval(timer);
@@ -223,12 +223,12 @@ export default function SpecialChallenge() {
       if (data.finished) {
         completedRef.current = true;
         finishResult(data);
-        if (data.reward_pence > 0) toast({ title: `You won ${money(data.reward_pence)}!` });
+        if (data.reward_paise > 0) toast({ title: `You won ${money(data.reward_paise)}!` });
       } else { setQuestion(data.question); setRound(data.round); }
     } catch (e) {
       completedRef.current = true;
       setError(messageOf(e));
-      finishResult({ result: 'fail', reward_pence: 0 });
+      finishResult({ result: 'fail', reward_paise: 0 });
     } finally { setBusy(false); }
   };
 
@@ -342,7 +342,7 @@ export default function SpecialChallenge() {
                 </div>
                 <div className="rounded-lg border border-white/10 bg-black/20 px-4 py-3">
                   <span className="block text-xs font-bold uppercase tracking-wider text-slate-400">Top prize</span>
-                  <strong className="mt-1 block text-xl text-emerald-300">{money(games.reduce((top, game) => Math.max(top, Number(game.prize_pence) || 0), 0))}</strong>
+                  <strong className="mt-1 block text-xl text-emerald-300">{money(games.reduce((top, game) => Math.max(top, Number(game.prize_paise) || 0), 0))}</strong>
                 </div>
               </div>
             </div>
@@ -415,7 +415,7 @@ export default function SpecialChallenge() {
                       <div className="mt-auto flex w-full items-end justify-between gap-3 pt-5">
                         <div>
                           <span className="block text-[10px] font-bold uppercase tracking-wider text-white/70">Prize</span>
-                          <strong className={`mt-1 block text-2xl font-black ${accent.prize}`}>{money(g.prize_pence)}</strong>
+                          <strong className={`mt-1 block text-2xl font-black ${accent.prize}`}>{money(g.prize_paise)}</strong>
                         </div>
                         <div className="text-right">
                           <span className="block text-[10px] font-bold uppercase tracking-wider text-white/70">Entry</span>
@@ -435,7 +435,7 @@ export default function SpecialChallenge() {
         </>}
         {selected && !attempt && <div className="mx-auto max-w-lg rounded-2xl border border-amber-500/30 bg-slate-900 p-6 text-center">
           <h1 className="text-3xl font-black text-amber-400">{selected.name}</h1>
-          <p className="mt-3 text-2xl font-black text-emerald-400">Win {money(selected.prize_pence)}</p>
+          <p className="mt-3 text-2xl font-black text-emerald-400">Win {money(selected.prize_paise)}</p>
           <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-lg bg-white/5 p-3">Entry <strong>{selected.entry_tokens} tokens</strong></div>
             <div className="rounded-lg bg-white/5 p-3">Time <strong>{selected.time_limit_seconds}s</strong></div>
@@ -482,8 +482,8 @@ export default function SpecialChallenge() {
           <p className="mt-5 text-sm text-white/55">
             {result.cooldown_blocked
               ? 'This game was already won in the last 24 hours. You can still play the other challenges.'
-              : result.reward_pence > 0
-                ? `${money(result.reward_pence)} credited to your Winnings Wallet. You can win this game again in 24 hours. 💸`
+              : result.reward_paise > 0
+                ? `${money(result.reward_paise)} credited to your Winnings Wallet. You can win this game again in 24 hours. 💸`
                 : result.result === 'success'
                   ? 'Challenge complete. You can play this game again in 24 hours; other challenges remain available.'
                   : 'Every attempt builds experience. Choose your next move.'}

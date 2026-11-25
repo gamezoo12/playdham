@@ -492,7 +492,7 @@ async def dashboard_summary(request: Request, period: str = '24h', window_hours:
     challenge_players = await db.special_challenge_attempts.distinct('user_id', challenge_match)
     challenge_rewards = await db.special_challenge_rewards.aggregate([
         {'$match': {'reward_status': 'credited', **_range_match(period, 'credited_at', start_date, end_date)[0]}},
-        {'$group': {'_id': None, 'count': {'$sum': 1}, 'pence': {'$sum': '$reward_pence'}}},
+        {'$group': {'_id': None, 'count': {'$sum': 1}, 'paise': {'$sum': '$reward_paise'}}},
     ]).to_list(1)
     influencer_visits = await db.influencer_visits.count_documents(order_match)
     influencer_signups = await db.influencer_attributions.count_documents(order_match)
@@ -551,7 +551,7 @@ async def dashboard_summary(request: Request, period: str = '24h', window_hours:
         'impossible_challenges': {
             'attempts_started': challenge_attempts, 'completed_plays': challenge_completions,
             'unique_players': len([uid for uid in challenge_players if uid]),
-            'winnings_awarded_gbp': round(float(challenge_rewards[0].get('pence', 0)) / 100, 2) if challenge_rewards else 0,
+            'winnings_awarded_inr': round(float(challenge_rewards[0].get('paise', 0)) / 100, 2) if challenge_rewards else 0,
             'winnings_credits': int(challenge_rewards[0].get('count', 0)) if challenge_rewards else 0,
         },
         'influencers': {
@@ -624,8 +624,8 @@ async def dashboard_recent_activity(request: Request, period: str = '30d', limit
                   lambda row: f"Cashout {row.get('status') or 'requested'}", amount_field='amount_inr',
                   amount_unit='inr', reference_field='withdrawal_id', title_by_row=True)
     await collect('withdrawal_requests', 'withdrawal_request',
-                  lambda row: f"Withdrawal {row.get('status') or 'requested'}", amount_field='amount_pence',
-                  amount_unit='pence', reference_field='withdrawal_id', title_by_row=True)
+                  lambda row: f"Withdrawal {row.get('status') or 'requested'}", amount_field='amount_paise',
+                  amount_unit='inr', reference_field='withdrawal_id', title_by_row=True)
     activities.sort(key=lambda row: row.get('created_at') or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
     return {'period': period, 'items': activities[:limit], 'count': min(len(activities), limit), 'limit': limit}
 

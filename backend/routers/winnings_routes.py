@@ -1,6 +1,6 @@
 """Winnings Wallet + configurable Something Special challenges.
 
-Money is stored in integer PENNIES only. A per-user `winnings_wallets` cache
+Money is stored in integer PAISE only. A per-user `winnings_wallets` cache
 document is mutated atomically (conditional $inc) to guarantee no negative or
 over-spend, while an immutable `winnings_ledger` provides the audit trail.
 Completely separate from token/normal/entry/payment wallets.
@@ -27,10 +27,10 @@ router = APIRouter(prefix="/api/winnings", tags=["winnings"])
 admin_router = APIRouter(prefix="/api/admin/winnings", tags=["admin-winnings"])
 
 CHALLENGE_ID = "something-special-100"
-CHALLENGE_REWARD_PENCE = 50000  # £500.00 — fixed server-side, never from client
+CHALLENGE_REWARD_PENCE = 50000  # ₹500.00 — fixed server-side, never from client
 CHALLENGE_DURATION_MS = 60_000
 EXPECTED_SEQUENCE = list(range(1, 101))
-CURRENCY = "GBP"
+CURRENCY = "INR"
 
 _indexes_ready = False
 
@@ -151,8 +151,8 @@ async def _get_wallet(db, user_id):
         {"user_id": user_id},
         {"$setOnInsert": {
             "user_id": user_id, "currency": CURRENCY,
-            "available_pence": 0, "pending_pence": 0,
-            "total_won_pence": 0, "total_paid_pence": 0,
+            "available_paise": 0, "pending_paise": 0,
+            "total_won_paise": 0, "total_paid_paise": 0,
             "created_at": _now(),
         }},
         upsert=True,
@@ -160,12 +160,12 @@ async def _get_wallet(db, user_id):
     return await db.winnings_wallets.find_one({"user_id": user_id}, {"_id": 0})
 
 
-async def _ledger(db, user_id, type_, amount_pence, reference=None, status="posted"):
+async def _ledger(db, user_id, type_, amount_paise, reference=None, status="posted"):
     await db.winnings_ledger.insert_one({
         "transaction_id": uuid.uuid4().hex,
         "user_id": user_id,
         "type": type_,
-        "amount_pence": int(amount_pence),
+        "amount_paise": int(amount_paise),
         "currency": CURRENCY,
         "reference": reference,
         "status": status,
@@ -200,12 +200,12 @@ def _default_games():
     for count, seconds in DEFAULT_TIMES.items():
         rows.append({"game_id": CHALLENGE_ID if count == 100 else f"number-sequence-{count}",
                      "type": "number_sequence", "size": count, "name": f"{count} Number Sequence",
-                     "time_limit_seconds": seconds, "entry_tokens": 1, "prize_pence": 50000,
+                     "time_limit_seconds": seconds, "entry_tokens": 1, "prize_paise": 50000,
                      "max_attempts": 0, "target_matches": 0, "enabled": True})
     for count, seconds in DEFAULT_COLOUR_TIMES.items():
         rows.append({"game_id": f"colour-match-{count}", "type": "colour_match", "size": count,
                      "name": f"{count} Colour Match", "time_limit_seconds": seconds,
-                     "entry_tokens": 1, "prize_pence": 50000, "max_attempts": 0,
+                     "entry_tokens": 1, "prize_paise": 50000, "max_attempts": 0,
                      "target_matches": 10, "enabled": True})
     return rows
 
@@ -218,7 +218,7 @@ async def _seed_challenges(db):
 
 def _public_game(g):
     game = {k: g[k] for k in ("game_id", "type", "size", "name", "time_limit_seconds",
-                              "entry_tokens", "prize_pence", "max_attempts", "target_matches", "enabled")}
+                              "entry_tokens", "prize_paise", "max_attempts", "target_matches", "enabled")}
     game["entry_tokens"] = 1
     return game
 
@@ -263,14 +263,14 @@ async def _finalise(db, attempt, success, integrity=None):
     if not updated:
         latest = await db.special_challenge_attempts.find_one({"attempt_id": attempt["attempt_id"]})
         return {"result": latest.get("result", "fail"), "elapsed_ms": latest.get("elapsed_ms", elapsed),
-                "reward_pence": 0, "already_rewarded": True, "finished": True}
+                "reward_paise": 0, "already_rewarded": True, "finished": True}
     if integrity and integrity.get('status') != 'clear':
         await db.gameplay_integrity_events.insert_one({
             'event_id': f'gie_{secrets.token_hex(12)}', 'source': 'special_challenge',
             'user_id': attempt['user_id'], 'attempt_id': attempt['attempt_id'],
             'game_type': attempt.get('type'), 'created_at': _now(), 'integrity': integrity,
         })
-    prize = int(attempt["prize_pence"])
+    prize = int(attempt["prize_paise"])
     rewarded = False
     if success and not held_for_review:
         now = _now()
@@ -286,14 +286,14 @@ async def _finalise(db, attempt, success, integrity=None):
                 {"attempt_id": attempt["attempt_id"]},
                 {"$set": {"result": "fail", "cooldown_blocked": True}},
             )
-            return {"result": "fail", "elapsed_ms": elapsed, "reward_pence": 0,
+            return {"result": "fail", "elapsed_ms": elapsed, "reward_paise": 0,
                     "cooldown_blocked": True, "finished": True}
         if prize > 0:
             try:
                 await db.special_challenge_rewards.insert_one({
                     "reward_id": uuid.uuid4().hex, "user_id": attempt["user_id"],
                     "challenge_id": attempt["challenge_id"], "attempt_id": attempt["attempt_id"],
-                    "reward_pence": prize, "reward_status": "pending", "created_at": now})
+                    "reward_paise": prize, "reward_status": "pending", "created_at": now})
                 # Idempotent wallet credit protects against retries. If credit fails, retain
                 # a pending reward for operational reconciliation rather than losing it.
                 await credit_withdrawable(db, attempt["user_id"], prize / 100.0,
@@ -305,12 +305,12 @@ async def _finalise(db, attempt, success, integrity=None):
                 await _ledger(db, attempt["user_id"], "challenge_reward", prize,
                               reference=attempt["attempt_id"])
                 await _audit(db, "challenge_reward", attempt["user_id"], attempt["attempt_id"],
-                             {"amount_pence": prize})
+                             {"amount_paise": prize})
                 rewarded = True
             except Exception as exc:
                 logger.exception("Special Challenge reward requires review: %s", exc)
     return {"result": "success" if success else "fail", "elapsed_ms": elapsed,
-            "reward_pence": prize if rewarded else 0,
+            "reward_paise": prize if rewarded else 0,
             "already_rewarded": success and prize > 0 and not rewarded, "finished": True}
 
 
@@ -339,7 +339,7 @@ async def list_challenge_attempts(request: Request, limit: int = 500):
         {"user_id": user["user_id"]},
         {"_id": 0, "attempt_id": 1, "challenge_id": 1, "entry_tokens": 1,
          "started_at": 1, "completed_at": 1, "elapsed_ms": 1, "status": 1,
-         "result": 1, "type": 1, "size": 1, "prize_pence": 1},
+         "result": 1, "type": 1, "size": 1, "prize_paise": 1},
     ).sort("started_at", -1).to_list(max(1, min(limit, 1000)))
     game_ids = list({row.get("challenge_id") for row in rows if row.get("challenge_id")})
     games = await db.special_challenge_games.find(
@@ -389,14 +389,14 @@ async def start_challenge(request: Request, body: StartChallengeBody = None):
     q = _question(game["size"]) if game["type"] == "colour_match" else None
     attempt = {"attempt_id": attempt_id, "challenge_id": game_id, "user_id": user_id,
                "type": game["type"], "size": game["size"], "target_matches": game["target_matches"],
-               "time_limit_seconds": game["time_limit_seconds"], "prize_pence": game["prize_pence"],
+               "time_limit_seconds": game["time_limit_seconds"], "prize_paise": game["prize_paise"],
                "entry_tokens": cost, "started_at": _now(), "completed_at": None,
                "elapsed_ms": None, "result": None, "status": "active", "round": 0,
                "question": q}
     await db.special_challenge_attempts.insert_one(attempt)
     return {"attempt_id": attempt_id, "challenge_id": game_id,
             "duration_ms": game["time_limit_seconds"] * 1000,
-            "reward_pence": game["prize_pence"], "already_rewarded": False,
+            "reward_paise": game["prize_paise"], "already_rewarded": False,
             "question": _question_public(q) if q else None, "round": 0,
             "target_matches": game["target_matches"]}
 
@@ -419,7 +419,7 @@ async def complete_challenge(body: CompleteBody, request: Request):
     if attempt.get("type", "number_sequence") != "number_sequence":
         raise HTTPException(400, "Use the colour match answer endpoint")
     if attempt.get("status") != "active":
-        return {"result": attempt.get("result", "fail"), "reward_pence": 0,
+        return {"result": attempt.get("result", "fail"), "reward_paise": 0,
                 "already_rewarded": True, "finished": True}
     size = int(attempt.get("size", 100))
     from services.gameplay_integrity import assess_gameplay_integrity
@@ -452,7 +452,7 @@ async def colour_answer(body: ColourAnswerBody, request: Request):
     if attempt.get("type") != "colour_match":
         raise HTTPException(400, "Not a Colour Match attempt")
     if attempt.get("status") != "active":
-        return {"finished": True, "result": attempt.get("result", "fail"), "reward_pence": 0}
+        return {"finished": True, "result": attempt.get("result", "fail"), "reward_paise": 0}
     if _elapsed_ms(attempt) > int(attempt["time_limit_seconds"]) * 1000:
         return await _finalise(db, attempt, False, None)
     if body.round != attempt["round"]:
@@ -488,7 +488,7 @@ class ChallengeGameBody(BaseModel):
     name: str
     time_limit_seconds: int
     entry_tokens: int
-    prize_pence: int
+    prize_paise: int
     max_attempts: int = 0
     target_matches: int = 10
     enabled: bool = True
@@ -589,11 +589,11 @@ async def admin_challenge_report(
         }},
         {"$group": {
             "_id": {"user_id": "$user_id", "game_id": "$challenge_id"},
-            "credited_winnings_pence": {"$sum": "$reward_pence"},
+            "credited_winnings_paise": {"$sum": "$reward_paise"},
         }},
     ]).to_list(None) if user_ids and game_ids else []
     winnings_map = {
-        (row["_id"]["user_id"], row["_id"]["game_id"]): row["credited_winnings_pence"]
+        (row["_id"]["user_id"], row["_id"]["game_id"]): row["credited_winnings_paise"]
         for row in reward_totals
     }
     game_reward_match = {"reward_status": "credited"}
@@ -605,10 +605,10 @@ async def admin_challenge_report(
         {"$match": game_reward_match},
         {"$group": {
             "_id": "$challenge_id",
-            "credited_winnings_pence": {"$sum": "$reward_pence"},
+            "credited_winnings_paise": {"$sum": "$reward_paise"},
         }},
     ]).to_list(None)
-    game_winnings_map = {row["_id"]: row["credited_winnings_pence"] for row in game_winnings}
+    game_winnings_map = {row["_id"]: row["credited_winnings_paise"] for row in game_winnings}
     cooldown_rows = await db.special_challenge_cooldowns.find(
         {"user_id": {"$in": user_ids}, "challenge_id": {"$in": game_ids}},
         {"_id": 0, "user_id": 1, "challenge_id": 1, "next_allowed_at": 1},
@@ -641,7 +641,7 @@ async def admin_challenge_report(
             "attempt_count": row["attempt_count"],
             "tokens_spent": row["tokens_spent"],
             "wins": row["wins"],
-            "credited_winnings_pence": winnings_map.get((uid, gid), 0),
+            "credited_winnings_paise": winnings_map.get((uid, gid), 0),
             "cooldown_until": cooldown_map.get((uid, gid)),
             "last_attempt": _iso(row.get("last_attempt")),
         })
@@ -657,7 +657,7 @@ async def admin_challenge_report(
             "attempt_count": row["attempt_count"],
             "tokens_spent": row["tokens_spent"],
             "wins": row["wins"],
-            "credited_winnings_pence": game_winnings_map.get(row["_id"], 0),
+            "credited_winnings_paise": game_winnings_map.get(row["_id"], 0),
         } for row in game_totals],
     }
 
@@ -703,7 +703,7 @@ async def save_challenge_game(game_id: str, body: ChallengeGameBody, request: Re
         raise HTTPException(400, "Invalid timer")
     if body.entry_tokens != 1:
         raise HTTPException(400, "Each challenge attempt costs exactly 1 token")
-    if not (0 <= body.prize_pence <= 100000000) or not (0 <= body.max_attempts <= 100000):
+    if not (0 <= body.prize_paise <= 100000000) or not (0 <= body.max_attempts <= 100000):
         raise HTTPException(400, "Invalid prize or attempt limit")
     if body.type == "colour_match" and not (1 <= body.target_matches <= 500):
         raise HTTPException(400, "Target matches must be 1–500")
@@ -732,10 +732,10 @@ async def get_winnings_wallet(request: Request):
     wallet = await _get_wallet(db, user["user_id"])
     return {
         "currency": CURRENCY,
-        "available_pence": wallet["available_pence"],
-        "pending_pence": wallet["pending_pence"],
-        "total_won_pence": wallet["total_won_pence"],
-        "total_paid_pence": wallet["total_paid_pence"],
+        "available_paise": wallet["available_paise"],
+        "pending_paise": wallet["pending_paise"],
+        "total_won_paise": wallet["total_won_paise"],
+        "total_paid_paise": wallet["total_paid_paise"],
     }
 
 
@@ -755,9 +755,9 @@ async def get_ledger(request: Request, limit: int = 100):
 # ------------------------------- Withdrawals ---------------------------------
 
 class WithdrawBody(BaseModel):
-    amount_pence: int
+    amount_paise: int
     account_holder: str
-    sort_code: str
+    ifsc: str
     account_number: str
 
 
@@ -770,18 +770,21 @@ async def request_withdrawal(body: WithdrawBody, request: Request):
     db = get_db()
     await _ensure_indexes(db)
 
-    amount = int(body.amount_pence)
+    amount = int(body.amount_paise)
     if amount <= 0:
         raise HTTPException(400, "Amount must be positive")
-    if not (body.account_holder and body.sort_code and body.account_number):
+    if not (body.account_holder and body.ifsc and body.account_number):
         raise HTTPException(400, "Bank details required")
+    ifsc = re.sub(r"\s+", "", body.ifsc).upper()
+    if not re.fullmatch(r"[A-Z]{4}0[A-Z0-9]{6}", ifsc):
+        raise HTTPException(400, "Invalid IFSC code")
 
     await _get_wallet(db, user["user_id"])
     # Atomic reserve: only succeeds if available >= amount (prevents over-spend
     # and concurrent double-withdrawal of the same funds).
     res = await db.winnings_wallets.update_one(
-        {"user_id": user["user_id"], "available_pence": {"$gte": amount}},
-        {"$inc": {"available_pence": -amount, "pending_pence": amount},
+        {"user_id": user["user_id"], "available_paise": {"$gte": amount}},
+        {"$inc": {"available_paise": -amount, "pending_paise": amount},
          "$set": {"updated_at": _now()}},
     )
     if res.modified_count != 1:
@@ -791,11 +794,11 @@ async def request_withdrawal(body: WithdrawBody, request: Request):
     await db.withdrawal_requests.insert_one({
         "withdrawal_id": wid,
         "user_id": user["user_id"],
-        "amount_pence": amount,
+        "amount_paise": amount,
         "currency": CURRENCY,
         "status": "processing",
         "account_holder": body.account_holder,
-        "sort_code": body.sort_code,
+        "ifsc": ifsc,
         "account_number": body.account_number,  # restricted; never in user APIs
         "created_at": _now(),
         "processed_at": None,
@@ -805,8 +808,8 @@ async def request_withdrawal(body: WithdrawBody, request: Request):
     await _ledger(db, user["user_id"], "withdrawal_pending", amount, reference=wid,
                   status="pending")
     await _audit(db, "withdrawal_request", user["user_id"], wid,
-                 {"amount_pence": amount})
-    return {"withdrawal_id": wid, "status": "processing", "amount_pence": amount}
+                 {"amount_paise": amount})
+    return {"withdrawal_id": wid, "status": "processing", "amount_paise": amount}
 
 
 @router.get("/withdrawals")
@@ -814,7 +817,7 @@ async def my_withdrawals(request: Request):
     user = await get_current_user(request)
     db = get_db()
     rows = await db.withdrawal_requests.find(
-        {"user_id": user["user_id"]}, {"_id": 0, "account_number": 0, "sort_code": 0}
+        {"user_id": user["user_id"]}, {"_id": 0, "account_number": 0, "ifsc": 0}
     ).sort("created_at", -1).to_list(100)
     for r in rows:
         r["created_at"] = _iso(r.get("created_at"))
@@ -846,13 +849,13 @@ async def admin_list_withdrawals(request: Request, status: str = None):
             "public_id": u.get("public_id"),
             "name": u.get("name"),
             "email": u.get("email"),
-            "amount_pence": r["amount_pence"],
+            "amount_paise": r["amount_paise"],
             "status": r["status"],
             "created_at": _iso(r.get("created_at")),
             "processed_at": _iso(r.get("processed_at")),
             "account_holder": r.get("account_holder"),
             "account_number_masked": _mask_account(r.get("account_number", "")),
-            "sort_code": r.get("sort_code"),
+            "ifsc": r.get("ifsc"),
         })
     return {"items": items}
 
@@ -871,9 +874,9 @@ async def admin_withdrawal_bank(withdrawal_id: str, request: Request):
     return {
         "withdrawal_id": withdrawal_id,
         "account_holder": r.get("account_holder"),
-        "sort_code": r.get("sort_code"),
+        "ifsc": r.get("ifsc"),
         "account_number": r.get("account_number"),
-        "amount_pence": r.get("amount_pence"),
+        "amount_paise": r.get("amount_paise"),
         "status": r.get("status"),
     }
 
@@ -897,12 +900,12 @@ async def admin_mark_paid(withdrawal_id: str, request: Request):
         return {"withdrawal_id": withdrawal_id, "status": cur["status"], "idempotent": True}
     await db.winnings_wallets.update_one(
         {"user_id": r["user_id"]},
-        {"$inc": {"pending_pence": -r["amount_pence"], "total_paid_pence": r["amount_pence"]},
+        {"$inc": {"pending_paise": -r["amount_paise"], "total_paid_paise": r["amount_paise"]},
          "$set": {"updated_at": now}},
     )
-    await _ledger(db, r["user_id"], "withdrawal_paid", r["amount_pence"], reference=withdrawal_id)
+    await _ledger(db, r["user_id"], "withdrawal_paid", r["amount_paise"], reference=withdrawal_id)
     await _audit(db, "withdrawal_paid", admin["user_id"], withdrawal_id,
-                 {"amount_pence": r["amount_pence"]})
+                 {"amount_paise": r["amount_paise"]})
     return {"withdrawal_id": withdrawal_id, "status": "paid"}
 
 
@@ -932,10 +935,10 @@ async def admin_reject(withdrawal_id: str, body: RejectBody, request: Request):
     # Release reserved funds back to available (exactly once).
     await db.winnings_wallets.update_one(
         {"user_id": r["user_id"]},
-        {"$inc": {"pending_pence": -r["amount_pence"], "available_pence": r["amount_pence"]},
+        {"$inc": {"pending_paise": -r["amount_paise"], "available_paise": r["amount_paise"]},
          "$set": {"updated_at": now}},
     )
-    await _ledger(db, r["user_id"], "withdrawal_rejected", r["amount_pence"], reference=withdrawal_id)
+    await _ledger(db, r["user_id"], "withdrawal_rejected", r["amount_paise"], reference=withdrawal_id)
     await _audit(db, "withdrawal_rejected", admin["user_id"], withdrawal_id,
-                 {"amount_pence": r["amount_pence"], "reason": body.reason.strip()})
+                 {"amount_paise": r["amount_paise"], "reason": body.reason.strip()})
     return {"withdrawal_id": withdrawal_id, "status": "rejected"}

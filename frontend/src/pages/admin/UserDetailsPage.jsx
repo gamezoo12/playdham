@@ -1031,12 +1031,12 @@ export default function UserDetailsPage() {
           {wallet_breakdown?.source_classified ? (
             <>
               <div className="text-xs text-slate-500">Top-up: {Number(wallet_breakdown.topup_tokens).toLocaleString()} · Winning: {Number(wallet_breakdown.winning_tokens).toLocaleString()} · Winning bonus: {Number(wallet_breakdown.winning_bonus_tokens).toLocaleString()} · Bonus: {Number(wallet_breakdown.bonus_tokens).toLocaleString()} · Total: {Number(wallet_breakdown.total_tokens).toLocaleString()}</div>
-              <div className="text-xs text-slate-500">Cashout available: {gbp(Number(wallet_breakdown.available_to_cash_out || 0))} · Lifetime top-ups: {gbp(totalDepositsPence / 100)} · Lifetime token spend: {Number(totalSpend || 0).toLocaleString()}</div>
+              <div className="text-xs text-slate-500">Cashout available: {inr(Number(wallet_breakdown.available_to_cash_out || 0))} · Lifetime top-ups: {gbp(totalDepositsPence / 100)} · Lifetime token spend: {Number(totalSpend || 0).toLocaleString()}</div>
             </>
           ) : (
             <div className="text-xs font-semibold text-amber-700">Legacy wallet source split unavailable; no category amounts are inferred.</div>
           )}
-          <div className="mt-1 text-xs text-slate-500">Winnings available: {gbp(Number(wallet_breakdown?.winnings_pence || 0) / 100)} · Lifetime winnings: {gbp(Number(wallet_breakdown?.lifetime_winnings_pence || 0) / 100)}</div>
+          <div className="mt-1 text-xs text-slate-500">Winnings available: {inr(Number(wallet_breakdown?.winnings_paise || 0) / 100)} · Lifetime winnings: {inr(Number(wallet_breakdown?.lifetime_winnings_paise || 0) / 100)}</div>
           {canManageUserFunds && <FourWalletAdjust userId={user_id} disabled={erased} onDone={load} />}
           <div className="mt-3 max-h-40 overflow-y-auto text-xs">
             {wallet_transactions.length === 0 ? <div className="text-slate-400">No wallet transactions.</div> :
@@ -1185,9 +1185,9 @@ export default function UserDetailsPage() {
       </Section>
 
       <Section title="Winnings history" icon={Trophy} hidden={activeSection !== 'winnings'}>
-        <div className="mb-3 text-xs text-slate-500">Lifetime Free World winnings: {gbp(world?.winnings_total || 0)}</div>
+        <div className="mb-3 text-xs text-slate-500">Lifetime Free World winnings: {inr(world?.winnings_total || 0)}</div>
         <div className="max-h-96 overflow-y-auto text-xs">
-          {(world?.winnings || []).map((winning, index) => <div key={winning.award_id || winning.winning_id || index} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2"><span>Championship {winning.global_contest_number ?? '—'} · Rank {winning.rank ?? '—'}</span><span>{winning.status || 'pending'} · {gbp(winning.winning_amount || 0)}</span><span className="text-slate-500">{(winning.paid_at || winning.frozen_at || winning.created_at) ? new Date(winning.paid_at || winning.frozen_at || winning.created_at).toLocaleString('en-GB', { timeZone: 'Europe/London' }) : '—'}</span></div>)}
+          {(world?.winnings || []).map((winning, index) => <div key={winning.award_id || winning.winning_id || index} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2"><span>Championship {winning.global_contest_number ?? '—'} · Rank {winning.rank ?? '—'}</span><span>{winning.status || 'pending'} · {inr(winning.winning_amount || 0)}</span><span className="text-slate-500">{(winning.paid_at || winning.frozen_at || winning.created_at) ? new Date(winning.paid_at || winning.frozen_at || winning.created_at).toLocaleString('en-GB', { timeZone: 'Europe/London' }) : '—'}</span></div>)}
           {!world?.winnings?.length && <p className="py-3 text-slate-400">No winnings recorded.</p>}
         </div>
       </Section>
@@ -1220,7 +1220,7 @@ export default function UserDetailsPage() {
               <div className="flex justify-between"><span className="text-slate-500">Attempts</span><span className="font-semibold">{special_challenge?.stats?.attempts_count || 0}</span></div>
               <div className="flex justify-between"><span className="text-slate-500">Rewards</span><span className="font-semibold">{special_challenge?.stats?.rewards_count || 0}</span></div>
               <div className="flex justify-between"><span className="text-slate-500">Tokens spent</span><span className="font-semibold">{special_challenge?.stats?.total_tokens_spent || 0}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Credit total</span><span className="font-semibold">{gbp((special_challenge?.stats?.total_rewards_pence || 0) / 100)}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Credit total</span><span className="font-semibold">{inr((special_challenge?.stats?.total_rewards_paise || 0) / 100)}</span></div>
             </div>
           </div>
           <div className="rounded-xl border border-slate-200 p-4">
@@ -1512,7 +1512,7 @@ export default function UserDetailsPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
             <StatCard label="Championship" value={world.stats?.champion_stage ?? '—'} tone="indigo" />
             <StatCard label="Current level" value={world.stats?.current_level ?? '—'} tone="teal" />
-            <StatCard label="Winnings" value={gbp(world.winnings_total || 0)} tone="emerald" />
+            <StatCard label="Winnings" value={inr(world.winnings_total || 0)} tone="emerald" />
             <StatCard label="Token events" value={world.stats?.token_events_count ?? 0} tone="amber" />
           </div>
 
@@ -1595,7 +1595,7 @@ export default function UserDetailsPage() {
                         <div className="text-slate-400">{(w.paid_at || w.frozen_at) ? new Date(w.paid_at || w.frozen_at).toLocaleString('en-GB', { timeZone: 'Europe/London' }) : '—'}</div>
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="font-bold text-emerald-700">{gbp(w.winning_amount || 0)}</div>
+                        <div className="font-bold text-emerald-700">{inr(w.winning_amount || 0)}</div>
                         <span className={`px-2 py-0.5 rounded-full font-bold ${w.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                           {w.status === 'paid' ? 'Paid' : 'Pending'}
                         </span>

@@ -322,7 +322,7 @@ async def world_activity(request: Request, period: str = '30d', world: str = 'al
             win_match = {'attempt_id': {'$in': [a['attempt_id'] for a in attempts]}, 'reward_status': 'credited'}
             win_rows = await db.special_challenge_rewards.aggregate([
                 {'$match': win_match},
-                {'$group': {'_id': None, 'count': {'$sum': 1}, 'cash_pence': {'$sum': '$reward_pence'},
+                {'$group': {'_id': None, 'count': {'$sum': 1}, 'cash_paise': {'$sum': '$reward_paise'},
                             'last_activity': {'$max': '$credited_at'}}},
             ]).to_list(1)
             winnings = win_rows[0] if win_rows else {}
@@ -397,7 +397,7 @@ async def business_review(request: Request, period: str = '7d', start_date: Opti
     paid = (await db.payment_transactions.aggregate([
         {'$match': {**topup_match, 'payment_status': 'paid'}},
         {'$group': {'_id': None, 'count': {'$sum': 1}, 'pence': {'$sum': {'$ifNull': ['$amount_received_pence', '$amount']}},
-                    'refunded': {'$sum': {'$ifNull': ['$amount_refunded_pence', 0]}},
+                'refunded': {'$sum': {'$ifNull': ['$amount_refunded_pence', 0]}},
                     'live_count': {'$sum': {'$cond': [{'$eq': ['$stripe_livemode', True]}, 1, 0]}}}},
     ]).to_list(1) or [{}])[0]
     unpaid = await db.payment_transactions.count_documents({**topup_match, 'payment_status': {'$ne': 'paid'}})
@@ -465,6 +465,10 @@ async def transaction_spend_by_refs(db, references, start, end, excluded):
 
 def _gbp(pence) -> float:
     return round((pence or 0) / 100.0, 2)
+
+
+def _inr(paise) -> float:
+    return round((paise or 0) / 100.0, 2)
 
 
 async def _sum(db, coll: str, match: dict, expr: str) -> float:
@@ -650,15 +654,15 @@ async def wallet_report(request: Request, include_staff: bool = False, include_t
     cashout_tokens = {s: await _sum(db, 'cashout_requests', {**uw, 'status': s}, '$amount_tokens') for s in ('processing', 'paid')}
     wins = (await db.winnings_wallets.aggregate([
         {'$match': uw},
-        {'$group': {'_id': None, 'won': {'$sum': '$total_won_pence'}, 'available': {'$sum': '$available_pence'},
-                    'pending': {'$sum': '$pending_pence'}, 'paid': {'$sum': '$total_paid_pence'}}},
+        {'$group': {'_id': None, 'won': {'$sum': '$total_won_paise'}, 'available': {'$sum': '$available_paise'},
+                    'pending': {'$sum': '$pending_paise'}, 'paid': {'$sum': '$total_paid_paise'}}},
     ]).to_list(1) or [{'won': 0, 'available': 0, 'pending': 0, 'paid': 0}])[0]
-    wd = {s: await _sum(db, 'withdrawal_requests', {**uw, 'status': s}, '$amount_pence') for s in ('processing', 'paid')}
+    wd = {s: await _sum(db, 'withdrawal_requests', {**uw, 'status': s}, '$amount_paise') for s in ('processing', 'paid')}
 
     result = {
         'generated_at': now.isoformat(),
         'scope': {'staff_included': include_staff, 'test_accounts_included': include_test, 'wallets': wallets.get('wallets', 0)},
-        'units': 'Token figures are tokens (1 token = \u00a31 only when cashed out). GBP figures are real money. They are never added together.',
+        'units': 'Token figures are tokens (1 token = \u00a31 only when cashed out). INR figures are real money. They are never added together.',
         'bonus_tokens': {
             'available': available, 'issued': issued,
             'spent_total': bonus_spent_known if unclassified_spend_rows == 0 else None,
@@ -703,7 +707,7 @@ async def wallet_report(request: Request, include_staff: bool = False, include_t
             'refunds_tokens': credited({'refund'}), 'admin_adjustments_tokens': {
                 'credited': credited({'admin_adjust'}), 'debited': debited({'admin_adjust'})},
             'notes': [
-                'Live cash received includes only paid GBP top-ups explicitly marked stripe_livemode=true.',
+                'Live cash received includes only paid INR top-ups explicitly marked stripe_livemode=true.',
                 'Legacy paid top-ups without a recorded mode are shown separately; test-mode payments are excluded.',
                 'Recognized revenue, Stripe fees, and net revenue are unavailable because no accounting or fee ledger is stored. Token top-ups are wallet liabilities, not automatically revenue.',
             ],
@@ -723,14 +727,14 @@ async def wallet_report(request: Request, include_staff: bool = False, include_t
                 'withdrawn': cashout_tokens['paid'], 'withdrawn_inr': round(cashouts['paid'], 2),
                 'pending_requests_tokens': cashout_tokens['processing'], 'pending_requests_inr': round(cashouts['processing'], 2),
             },
-            'challenge_winnings_gbp': {
-                'awarded': _gbp(wins['won']), 'held': _gbp(wins['available']), 'pending': _gbp(wins['pending']),
-                'withdrawn': _gbp(wins['paid']), 'pending_withdrawals': _gbp(wd['processing']),
-                'completed_withdrawals': _gbp(wd['paid']),
+            'challenge_winnings_inr': {
+                'awarded': _inr(wins['won']), 'held': _inr(wins['available']), 'pending': _inr(wins['pending']),
+                'withdrawn': _inr(wins['paid']), 'pending_withdrawals': _inr(wd['processing']),
+                'completed_withdrawals': _inr(wd['paid']),
             },
             'prize_liabilities_outstanding': {
                 'tokens_redeemable': round(float(wallets.get('withdrawable', 0)) + float(wallets.get('pending', 0)), 2),
-                'gbp': _gbp(wins['available'] + wins['pending']),
+                'inr': _inr(wins['available'] + wins['pending']),
             },
         },
         'integrity': {

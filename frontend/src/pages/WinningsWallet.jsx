@@ -5,7 +5,7 @@ import { winningsAPI } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { useToast } from '../hooks/use-toast';
 
-const gbp = (p) => `£${(Number(p || 0) / 100).toFixed(2)}`;
+const rupees = (paise) => `₹${(Number(paise || 0) / 100).toFixed(2)}`;
 
 export default function WinningsWallet() {
   const { toast } = useToast();
@@ -22,7 +22,7 @@ export default function WinningsWallet() {
   const [wOpen, setWOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [holder, setHolder] = useState('');
-  const [sort, setSort] = useState('');
+  const [ifsc, setIfsc] = useState('');
   const [acct, setAcct] = useState('');
   const [wBusy, setWBusy] = useState(false);
   const [myWd, setMyWd] = useState([]);
@@ -48,18 +48,18 @@ export default function WinningsWallet() {
   }, []);
 
   const highestChallengePrize = challengeGames.reduce(
-    (highest, game) => Math.max(highest, Number(game.prize_pence) || 0),
+    (highest, game) => Math.max(highest, Number(game.prize_paise) || 0),
     0,
   );
 
   const submitWithdraw = async () => {
-    const pence = Math.round(parseFloat(amount || '0') * 100);
-    if (!pence || pence <= 0) { toast({ title: 'Enter an amount', variant: 'destructive' }); return; }
+    const paise = Math.round(parseFloat(amount || '0') * 100);
+    if (!paise || paise <= 0) { toast({ title: 'Enter an amount', variant: 'destructive' }); return; }
     setWBusy(true);
     try {
-      await winningsAPI.withdraw({ amount_pence: pence, account_holder: holder, sort_code: sort, account_number: acct });
+      await winningsAPI.withdraw({ amount_paise: paise, account_holder: holder, ifsc, account_number: acct });
       toast({ title: 'Withdrawal Processing', description: 'Our team will transfer the funds manually.' });
-      setWOpen(false); setAmount(''); setHolder(''); setSort(''); setAcct('');
+      setWOpen(false); setAmount(''); setHolder(''); setIfsc(''); setAcct('');
       await load();
     } catch (e) {
       toast({ title: 'Withdrawal failed', description: e?.response?.data?.detail || 'Check your balance.', variant: 'destructive' });
@@ -123,13 +123,13 @@ export default function WinningsWallet() {
         <div className="flex items-center justify-between">
           <h3 className="font-extrabold text-lg flex items-center gap-2"><Wallet className="w-5 h-5 text-[#6C2BFF]" /> Winnings Wallet</h3>
           <Button variant="outline" onClick={() => setWOpen(true)}
-            disabled={!wallet || wallet.available_pence <= 0} data-testid="withdraw-button">Withdraw Winnings</Button>
+            disabled={!wallet || wallet.available_paise <= 0} data-testid="withdraw-button">Withdraw Winnings</Button>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-          <Stat label="Available" v={gbp(wallet?.available_pence)} t="wallet-available" />
-          <Stat label="Pending withdrawal" v={gbp(wallet?.pending_pence)} t="wallet-pending" />
-          <Stat label="Total won" v={gbp(wallet?.total_won_pence)} t="wallet-total-won" />
-          <Stat label="Paid out" v={gbp(wallet?.total_paid_pence)} t="wallet-total-paid" />
+          <Stat label="Available" v={rupees(wallet?.available_paise)} t="wallet-available" />
+          <Stat label="Pending withdrawal" v={rupees(wallet?.pending_paise)} t="wallet-pending" />
+          <Stat label="Total won" v={rupees(wallet?.total_won_paise)} t="wallet-total-won" />
+          <Stat label="Paid out" v={rupees(wallet?.total_paid_paise)} t="wallet-total-paid" />
         </div>
         <div className="mt-4">
           <h4 className="text-xs font-bold uppercase text-slate-400 mb-2">Transaction history</h4>
@@ -138,7 +138,7 @@ export default function WinningsWallet() {
             {ledger.map((x) => (
               <div key={x.transaction_id} className="flex justify-between py-2 text-sm">
                 <span className="text-slate-600">{x.type.replace(/_/g, ' ')}</span>
-                <span className="font-bold">{gbp(x.amount_pence)} · {x.status}</span>
+                <span className="font-bold">{rupees(x.amount_paise)} · {x.status}</span>
               </div>
             ))}
           </div>
@@ -202,14 +202,14 @@ export default function WinningsWallet() {
           onClick={() => !wBusy && setWOpen(false)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-extrabold text-lg">Withdraw Winnings</h3>
-            <p className="text-xs text-slate-500 mt-1">Available: {gbp(wallet?.available_pence)}. UK bank transfer, processed manually by our team.</p>
+            <p className="text-xs text-slate-500 mt-1">Available: {rupees(wallet?.available_paise)}. Indian bank transfer, processed manually by our team.</p>
             <div className="space-y-3 mt-4">
-              <input className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Amount (£)" value={amount}
+              <input className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Amount (₹)" value={amount}
                 onChange={(e) => setAmount(e.target.value)} data-testid="wd-amount" />
               <input className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Account holder name" value={holder}
                 onChange={(e) => setHolder(e.target.value)} data-testid="wd-holder" />
-              <input className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Sort code" value={sort}
-                onChange={(e) => setSort(e.target.value)} data-testid="wd-sort" />
+              <input className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="IFSC code" value={ifsc}
+                onChange={(e) => setIfsc(e.target.value.toUpperCase())} data-testid="wd-ifsc" />
               <input className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Account number" value={acct}
                 onChange={(e) => setAcct(e.target.value)} data-testid="wd-acct" />
             </div>

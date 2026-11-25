@@ -118,12 +118,12 @@ export default function DashboardWalletReport() {
           <Row label="Held, withdrawable (tokens)" value={t(w.championship_prize_tokens.held_withdrawable)} />
           <Row label="Cash-outs pending (INR)" value={inr(w.championship_prize_tokens.pending_requests_inr)} />
           <Row label="Cash-outs paid (INR)" value={inr(w.championship_prize_tokens.withdrawn_inr)} />
-          <Row label="Challenge winnings awarded (GBP)" value={gbp(w.challenge_winnings_gbp.awarded)} />
-          <Row label="Challenge winnings held (GBP)" value={gbp(w.challenge_winnings_gbp.held)} />
-          <Row label="Withdrawals pending (GBP)" value={gbp(w.challenge_winnings_gbp.pending_withdrawals)} />
-          <Row label="Withdrawals completed (GBP)" value={gbp(w.challenge_winnings_gbp.completed_withdrawals)} />
+          <Row label="Challenge winnings awarded (INR)" value={inr(w.challenge_winnings_inr.awarded)} />
+          <Row label="Challenge winnings held (INR)" value={inr(w.challenge_winnings_inr.held)} />
+          <Row label="Withdrawals pending (INR)" value={inr(w.challenge_winnings_inr.pending_withdrawals)} />
+          <Row label="Withdrawals completed (INR)" value={inr(w.challenge_winnings_inr.completed_withdrawals)} />
           <Row label="Liabilities: tokens redeemable" value={t(w.prize_liabilities_outstanding.tokens_redeemable)} testid="liability-tokens" />
-          <Row label="Liabilities: GBP" value={gbp(w.prize_liabilities_outstanding.gbp)} testid="liability-gbp" />
+          <Row label="Liabilities: INR" value={inr(w.prize_liabilities_outstanding.inr)} testid="liability-inr" />
         </Group>
       </div>
       <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">

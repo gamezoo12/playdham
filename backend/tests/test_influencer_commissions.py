@@ -869,8 +869,8 @@ def test_user_360_returns_wallet_sources_grants_and_safe_withdrawal_history(scen
         assert result['wallet_breakdown']['source_classified'] is False
         assert result['wallet_breakdown']['balance_tokens'] == 20
         assert result['wallet_breakdown']['bonus_tokens'] is None
-        assert result['wallet_breakdown']['winnings_pence'] == 1250
-        assert result['wallet_breakdown']['lifetime_winnings_pence'] == 2000
+        assert result['wallet_breakdown']['winnings_paise'] == 1250
+        assert result['wallet_breakdown']['lifetime_winnings_paise'] == 2000
         assert result['bonus_grants'][0]['spent_amount'] == 5
         assert result['withdrawals'][0]['amount_gbp'] == 1
         assert 'account_number' not in result['withdrawals'][0]

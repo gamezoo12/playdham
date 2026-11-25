@@ -4,7 +4,7 @@ import { winningsAdminAPI } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../hooks/use-toast';
 
-const gbp = (p) => `£${(Number(p || 0) / 100).toFixed(2)}`;
+const rupees = (paise) => `₹${(Number(paise || 0) / 100).toFixed(2)}`;
 const FILTERS = [
   { id: '', label: 'All' },
   { id: 'processing', label: 'Processing' },
@@ -87,7 +87,7 @@ export default function WinningsPayoutsAdmin() {
           <h1 className="font-display font-extrabold text-2xl text-slate-900 flex items-center gap-2">
             <Banknote className="w-6 h-6 text-[#6C2BFF]" /> Winnings Payouts
           </h1>
-          <p className="text-sm text-slate-500 mt-0.5">Review UK bank withdrawal requests from the Winnings Wallet.</p>
+          <p className="text-sm text-slate-500 mt-0.5">Review Indian bank withdrawal requests from the Winnings Wallet.</p>
         </div>
         <Button variant="outline" size="sm" onClick={load} data-testid="payouts-refresh">
           <RefreshCw className="w-4 h-4 mr-1" /> Refresh
@@ -137,10 +137,10 @@ export default function WinningsPayoutsAdmin() {
                       <div className="text-xs text-slate-400">{r.email || ''}</div>
                       <div className="text-[10px] text-slate-400 font-mono">{r.public_id || ''}</div>
                     </td>
-                    <td className="px-4 py-3 font-extrabold text-slate-900" data-testid={`payout-amount-${r.withdrawal_id}`}>{gbp(r.amount_pence)}</td>
+                    <td className="px-4 py-3 font-extrabold text-slate-900" data-testid={`payout-amount-${r.withdrawal_id}`}>{rupees(r.amount_paise)}</td>
                     <td className="px-4 py-3">
                       <div className="text-slate-700">{r.account_holder || '—'}</div>
-                      <div className="text-xs text-slate-400 font-mono">{r.sort_code || ''} · {r.account_number_masked || ''}</div>
+                      <div className="text-xs text-slate-400 font-mono">{r.ifsc || ''} · {r.account_number_masked || ''}</div>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center text-xs font-semibold px-2 py-1 rounded-full border capitalize ${statusPill(r.status)}`} data-testid={`payout-status-${r.withdrawal_id}`}>
@@ -186,9 +186,9 @@ export default function WinningsPayoutsAdmin() {
             ) : (
               <dl className="space-y-2 text-sm">
                 <Row k="Account holder" v={bank.account_holder} t="bank-holder" />
-                <Row k="Sort code" v={bank.sort_code} t="bank-sort" />
+                <Row k="IFSC" v={bank.ifsc} t="bank-ifsc" />
                 <Row k="Account number" v={bank.account_number} t="bank-number" />
-                <Row k="Amount" v={gbp(bank.amount_pence)} t="bank-amount" />
+                <Row k="Amount" v={rupees(bank.amount_paise)} t="bank-amount" />
                 <Row k="Status" v={bank.status} t="bank-status" />
               </dl>
             )}
